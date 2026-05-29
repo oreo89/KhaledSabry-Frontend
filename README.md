@@ -12,7 +12,7 @@ npm run dev
 The app proxies API calls through `/api/backend/*` to avoid browser CORS issues. By default it targets:
 
 ```bash
-http://localhost:5090
+https://khaledsabry-backend.onrender.com
 ```
 
 Override it with `API_BASE_URL` or `NEXT_PUBLIC_API_BASE_URL`.

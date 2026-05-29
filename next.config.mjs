@@ -7,6 +7,11 @@ const nextConfig = {
         hostname: "localhost",
         port: "5090",
         pathname: "/**"
+      },
+      {
+        protocol: "https",
+        hostname: "khaledsabry-backend.onrender.com",
+        pathname: "/**"
       }
     ]
   }
