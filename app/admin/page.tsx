@@ -7,6 +7,7 @@ import { getShippingFee, loginAdmin, updateShippingFee } from "@/lib/api";
 import { money } from "@/lib/format";
 import { clearAdminSession, getAdminSession, setAdminSession } from "@/lib/storage";
 import { ShippingFee, UserSession } from "@/lib/types";
+import { DataLoader } from "@/components/DataLoader";
 
 export default function AdminPage() {
   const [session, setSession] = useState<UserSession | null>(null);
@@ -15,6 +16,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [shipping, setShipping] = useState<ShippingFee | null>(null);
   const [shippingFee, setShippingFee] = useState("0");
+  const [shippingLoading, setShippingLoading] = useState(false);
   const [shippingMessage, setShippingMessage] = useState("");
 
   useEffect(() => {
@@ -26,6 +28,7 @@ export default function AdminPage() {
   }, []);
 
   async function loadShipping() {
+    setShippingLoading(true);
     try {
       const value = await getShippingFee();
       setShipping(value);
@@ -33,6 +36,8 @@ export default function AdminPage() {
       setShippingMessage("");
     } catch (error) {
       setShippingMessage(error instanceof Error ? error.message : "Could not load shipping fee.");
+    } finally {
+      setShippingLoading(false);
     }
   }
 
@@ -103,33 +108,39 @@ export default function AdminPage() {
                   </button>
                 </div>
               </div>
-              <form className="row g-3 align-items-end border-top mt-4 pt-4" onSubmit={saveShipping}>
-                <div className="col-md-7">
-                  <label className="form-label small text-muted fw-bold d-flex align-items-center gap-2">
-                    <Truck size={16} />
-                    Shipping fee
-                  </label>
-                  <input
-                    className="form-control form-control-lg"
-                    min="0"
-                    step="0.01"
-                    type="number"
-                    value={shippingFee}
-                    onChange={event => setShippingFee(event.target.value)}
-                    required
-                  />
-                </div>
-                <div className="col-md-3">
-                  <button className="btn btn-dark btn-lg w-100 d-inline-flex align-items-center justify-content-center gap-2" type="submit">
-                    <Save size={18} />
-                    Save
-                  </button>
-                </div>
-                <div className="col-md-2 fw-black text-md-end">
-                  {money.format(shipping?.shippingFee ?? Number(shippingFee || 0))}
-                </div>
-                <p className="message mb-0">{shippingMessage}</p>
-              </form>
+              <div className="border-top mt-4 pt-4">
+                {shippingLoading ? (
+                  <DataLoader label="Loading shipping" />
+                ) : (
+                  <form className="row g-3 align-items-end" onSubmit={saveShipping}>
+                    <div className="col-md-7">
+                      <label className="form-label small text-muted fw-bold d-flex align-items-center gap-2">
+                        <Truck size={16} />
+                        Shipping fee
+                      </label>
+                      <input
+                        className="form-control form-control-lg"
+                        min="0"
+                        step="0.01"
+                        type="number"
+                        value={shippingFee}
+                        onChange={event => setShippingFee(event.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="col-md-3">
+                      <button className="btn btn-dark btn-lg w-100 d-inline-flex align-items-center justify-content-center gap-2" type="submit">
+                        <Save size={18} />
+                        Save
+                      </button>
+                    </div>
+                    <div className="col-md-2 fw-black text-md-end">
+                      {money.format(shipping?.shippingFee ?? Number(shippingFee || 0))}
+                    </div>
+                    <p className="message mb-0">{shippingMessage}</p>
+                  </form>
+                )}
+              </div>
             </section>
           ) : (
             <section className="panel p-3 p-md-4 mx-auto" style={{ maxWidth: 560 }}>
