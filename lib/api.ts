@@ -1,5 +1,5 @@
 import { clearCartId, getAdminSession, getCartId, setCartId } from "./storage";
-import { Cart, CatalogOption, CheckoutForm, Order, PaginationResult, Product, ProductUpsert, ShippingFee, UserSession } from "./types";
+import { Cart, CatalogOption, CheckoutForm, Order, PaginationResult, PaymentMethod, Product, ProductUpsert, ShippingFee, UserSession } from "./types";
 
 type RequestOptions = RequestInit & {
   auth?: boolean;
@@ -32,10 +32,12 @@ async function readResponsePayload(response: Response) {
   return text || undefined;
 }
 
-function getErrorMessage(payload: unknown) {
-  if (!payload) return "Request failed.";
+function getErrorMessage(payload: unknown, response: Response) {
+  if (response.status === 401) return "Please log in to admin again.";
+  if (response.status === 403) return "Your admin account is not allowed to do this.";
+  if (!payload) return `Request failed (${response.status}).`;
   if (typeof payload === "string") return payload;
-  if (typeof payload !== "object") return "Request failed.";
+  if (typeof payload !== "object") return `Request failed (${response.status}).`;
 
   const body = payload as {
     errors?: string[] | Record<string, string[]>;
@@ -48,7 +50,7 @@ function getErrorMessage(payload: unknown) {
       ? Object.values(body.errors).flat()
       : [];
 
-  return [body.message ?? body.title ?? "Request failed.", ...errors].join(" ");
+  return [body.message ?? body.title ?? `Request failed (${response.status}).`, ...errors].join(" ");
 }
 
 function asRecord(payload: unknown) {
@@ -136,7 +138,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (!response.ok) {
     const payload = await readResponsePayload(response);
-    throw new Error(getErrorMessage(payload));
+    throw new Error(getErrorMessage(payload, response));
   }
 
   return readResponsePayload(response) as Promise<T>;
@@ -196,12 +198,13 @@ export async function removeCartItem(productId: number, color: string, size: str
   });
 }
 
-export async function placeOrder(customer: CheckoutForm, cart: Cart) {
+export async function placeOrder(customer: CheckoutForm, cart: Cart, paymentMethod: PaymentMethod) {
   const order = await request<Order>("/orders", {
     method: "POST",
     body: JSON.stringify({
       email: customer.email,
       phoneNumber: customer.phoneNumber,
+      paymentMethod,
       address: {
         firstName: customer.firstName,
         lastName: customer.lastName,
@@ -270,6 +273,23 @@ export function deleteProduct(id: number) {
 
 export function getAdminOrders() {
   return request<Order[]>("/orders/AllOrders", { auth: true });
+}
+
+export function markOrderPaymentReceived(orderId: string) {
+  return request<Order>(`/orders/${orderId}/payment-received`, {
+    method: "PATCH",
+    auth: true
+  }).catch(error => {
+    const message = error instanceof Error ? error.message : "";
+    if (!message.includes("(404)") && !message.includes("(405)")) {
+      throw error;
+    }
+
+    return request<Order>(`/orders/${orderId}/payment-received`, {
+      method: "POST",
+      auth: true
+    });
+  });
 }
 
 export function getShippingFee() {

@@ -87,6 +87,8 @@ export type CheckoutForm = {
   country: string;
 };
 
+export type PaymentMethod = "cash_on_delivery" | "instapay";
+
 export type Order = {
   id: string;
   userEmail: string;
@@ -100,6 +102,7 @@ export type Order = {
     country: string;
   };
   deliveryMethod: string;
+  paymentMethod?: string;
   shippingFee: number;
   orderState: string;
   items: Array<{

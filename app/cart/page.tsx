@@ -2,11 +2,11 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Banknote, Minus, Plus, Smartphone, Trash2 } from "lucide-react";
 import { ensureCart, getShippingFee, placeOrder, removeCartItem, updateCartItem } from "@/lib/api";
 import { money } from "@/lib/format";
 import { shirtPlaceholder, useImageFallback } from "@/lib/images";
-import { Cart, CheckoutForm, ShippingFee } from "@/lib/types";
+import { Cart, CheckoutForm, PaymentMethod, ShippingFee } from "@/lib/types";
 import { DataLoader } from "@/components/DataLoader";
 
 const blankCustomer: CheckoutForm = {
@@ -19,10 +19,13 @@ const blankCustomer: CheckoutForm = {
   country: ""
 };
 
+const instapayMessage = "Someone will contact you to confirm your Instapay payment.";
+
 export default function CartPage() {
   const [cart, setCart] = useState<Cart | null>(null);
   const [shipping, setShipping] = useState<ShippingFee | null>(null);
   const [customer, setCustomer] = useState(blankCustomer);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash_on_delivery");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
@@ -62,9 +65,14 @@ export default function CartPage() {
 
     setMessage("Placing order...");
     try {
-      const order = await placeOrder(customer, cart);
-      setMessage(`Order placed. Reference: ${order.id}`);
+      const order = await placeOrder(customer, cart, paymentMethod);
+      setMessage(
+        paymentMethod === "instapay"
+          ? `Order placed. Reference: ${order.id}. ${instapayMessage}`
+          : `Order placed. Reference: ${order.id}`
+      );
       setCustomer(blankCustomer);
+      setPaymentMethod("cash_on_delivery");
       await load();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not place order.");
@@ -163,6 +171,49 @@ export default function CartPage() {
                         />
                       </div>
                     ))}
+                  </div>
+                  <div>
+                    <label className="form-label small text-muted fw-bold">Payment method</label>
+                    <div className="payment-options">
+                      <label className={`payment-option ${paymentMethod === "cash_on_delivery" ? "active-payment" : ""}`}>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="cash_on_delivery"
+                          checked={paymentMethod === "cash_on_delivery"}
+                          onChange={() => {
+                            setPaymentMethod("cash_on_delivery");
+                            setMessage("");
+                          }}
+                        />
+                        <span className="payment-icon">
+                          <Banknote size={18} />
+                        </span>
+                        <span>
+                          <strong>Cash on delivery</strong>
+                          <small>Pay when your order arrives.</small>
+                        </span>
+                      </label>
+                      <label className={`payment-option ${paymentMethod === "instapay" ? "active-payment" : ""}`}>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="instapay"
+                          checked={paymentMethod === "instapay"}
+                          onChange={() => {
+                            setPaymentMethod("instapay");
+                            setMessage(instapayMessage);
+                          }}
+                        />
+                        <span className="payment-icon">
+                          <Smartphone size={18} />
+                        </span>
+                        <span>
+                          <strong>Instapay</strong>
+                          <small>{instapayMessage}</small>
+                        </span>
+                      </label>
+                    </div>
                   </div>
                   <button className="btn btn-dark btn-lg w-100" type="submit">
                     Place order
