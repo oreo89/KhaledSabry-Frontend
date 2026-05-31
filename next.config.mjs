@@ -1,4 +1,7 @@
 /** @type {import('next').NextConfig} */
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://khaledsabry-backend-6lda.onrender.com";
+const apiHostname = new URL(apiBaseUrl).hostname;
+
 const nextConfig = {
   images: {
     remotePatterns: [
@@ -10,7 +13,7 @@ const nextConfig = {
       },
       {
         protocol: "https",
-        hostname: "khaledsabry-backend.onrender.com",
+        hostname: apiHostname,
         pathname: "/**"
       }
     ]
