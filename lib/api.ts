@@ -7,7 +7,7 @@ type RequestOptions = RequestInit & {
 
 const configuredApiBaseUrl = (
   process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://khaledsabry-backend.onrender.com"
+  "https://khaledsabry-backend-6lda.onrender.com"
 ).replace(/\/+$/, "");
 const apiBaseUrl = configuredApiBaseUrl.endsWith("/api") ? configuredApiBaseUrl : `${configuredApiBaseUrl}/api`;
 
