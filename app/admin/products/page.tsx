@@ -7,12 +7,11 @@ import {
   createProduct,
   deleteProduct,
   getAdminProducts,
-  getTypes,
   setProductDiscount,
   updateProduct
 } from "@/lib/api";
 import { joinList, money, splitList } from "@/lib/format";
-import { CatalogOption, Product, ProductUpsert } from "@/lib/types";
+import { Product, ProductUpsert } from "@/lib/types";
 import { DataLoader } from "@/components/DataLoader";
 
 const blankProduct: ProductUpsert = {
@@ -30,13 +29,12 @@ const blankProduct: ProductUpsert = {
   isFeatured: false,
   isActive: true,
   brandId: 1,
-  typeId: 1
+  typeId: 0
 };
 
 export default function AdminProductsPage() {
   const formPanelRef = useRef<HTMLElement | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [types, setTypes] = useState<CatalogOption[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(blankProduct);
   const [colorText, setColorText] = useState("");
@@ -48,9 +46,8 @@ export default function AdminProductsPage() {
   async function load() {
     setLoading(true);
     const params = new URLSearchParams({ pageIndex: "1", pageSize: "24", includeInactive: "true" });
-    const [productResult, typeResult] = await Promise.all([getAdminProducts(params), getTypes()]);
+    const productResult = await getAdminProducts(params);
     setProducts(productResult.data);
-    setTypes(typeResult);
     setLoading(false);
   }
 
@@ -78,7 +75,7 @@ export default function AdminProductsPage() {
       isFeatured: product.isFeatured,
       isActive: product.isActive,
       brandId: product.brandId,
-      typeId: product.typeId
+      typeId: product.typeId || 0
     };
     setForm(next);
     setColorText(joinList(next.colors));
@@ -95,33 +92,49 @@ export default function AdminProductsPage() {
     setImageText("");
   }
 
-  function uploadImage(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  function readImageFile(file: File) {
+    return new Promise<string>((resolve, reject) => {
+      if (!file.type.startsWith("image/")) {
+        reject(new Error(`${file.name} is not an image file.`));
+        return;
+      }
 
-    if (!file.type.startsWith("image/")) {
-      setMessage("Choose an image file.");
-      return;
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadImages(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (files.length === 0) return;
+
+    try {
+      const dataUrls = await Promise.all(files.map(readImageFile));
+      setForm(current => {
+        const pictureUrl = current.pictureUrl || dataUrls[0] || "";
+        const imageUrls = Array.from(new Set([...current.imageUrls, ...dataUrls]));
+        return { ...current, pictureUrl, imageUrls };
+      });
+      setMessage(`${dataUrls.length} image${dataUrls.length === 1 ? "" : "s"} loaded from your PC.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not read those images.");
     }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = String(reader.result ?? "");
-      setForm(current => ({ ...current, pictureUrl: dataUrl }));
-      setMessage("Image loaded from your PC.");
-    };
-    reader.onerror = () => setMessage("Could not read that image.");
-    reader.readAsDataURL(file);
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const linkedImages = splitList(imageText);
+    const imageUrls = Array.from(new Set([...form.imageUrls, ...linkedImages]));
     const payload = {
       ...form,
       brandId: 1,
+      typeId: form.typeId ?? 0,
       colors: splitList(colorText),
       sizes: splitList(sizeText),
-      imageUrls: splitList(imageText)
+      imageUrls
     };
 
     setMessage("Saving...");
@@ -191,12 +204,6 @@ export default function AdminProductsPage() {
                   <input className="form-control" type="number" value={form.stockQuantity} onChange={event => setForm({ ...form, stockQuantity: Number(event.target.value) })} />
                 </div>
                 <div className="col-md-6 col-xl-3">
-                  <label className="form-label small text-muted fw-bold">Type</label>
-                  <select className="form-select" value={form.typeId} onChange={event => setForm({ ...form, typeId: Number(event.target.value) })}>
-                    {types.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
-                  </select>
-                </div>
-                <div className="col-md-6 col-xl-3">
                   <label className="form-label small text-muted fw-bold">Material</label>
                   <input className="form-control" value={form.material} onChange={event => setForm({ ...form, material: event.target.value })} />
                 </div>
@@ -217,18 +224,21 @@ export default function AdminProductsPage() {
                   <input className="form-control" required value={form.pictureUrl} onChange={event => setForm({ ...form, pictureUrl: event.target.value })} />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label small text-muted fw-bold">Gallery image URLs</label>
-                  <input className="form-control" value={imageText} onChange={event => setImageText(event.target.value)} placeholder="url1, url2" />
+                  <label className="form-label small text-muted fw-bold">Gallery image links</label>
+                  <textarea className="form-control" rows={2} value={imageText} onChange={event => setImageText(event.target.value)} placeholder="Paste links separated by commas or new lines" />
                 </div>
               </div>
 
               <div className="d-flex flex-wrap gap-3 align-items-center">
                 <label className="btn btn-outline-dark file-picker mb-0 d-inline-flex align-items-center gap-2">
                   <Upload size={16} />
-                  Upload main image from PC
-                  <input accept="image/*" type="file" onChange={uploadImage} />
+                  Upload images from PC
+                  <input accept="image/*" multiple type="file" onChange={uploadImages} />
                 </label>
                 {form.pictureUrl && <img className="admin-preview" src={form.pictureUrl} alt="Selected product preview" />}
+                {form.imageUrls.filter(url => url !== form.pictureUrl).slice(0, 6).map(url => (
+                  <img className="admin-preview" key={url} src={url} alt="Selected gallery preview" />
+                ))}
               </div>
 
               <div>

@@ -42,7 +42,7 @@ export type ProductUpsert = {
   isFeatured: boolean;
   isActive: boolean;
   brandId: number;
-  typeId: number;
+  typeId?: number;
 };
 
 export type CatalogOption = {

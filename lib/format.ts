@@ -6,7 +6,7 @@ export const money = new Intl.NumberFormat("en-EG", {
 
 export function splitList(value: string) {
   return value
-    .split(",")
+    .split(/[\n,]+/)
     .map(item => item.trim())
     .filter(Boolean);
 }
