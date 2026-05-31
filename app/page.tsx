@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { getFeaturedProducts } from "@/lib/api";
+import { getPublicErrorMessage } from "@/lib/errors";
 import { Product } from "@/lib/types";
 import { DataLoader } from "@/components/DataLoader";
 import { ProductGrid } from "@/components/ProductGrid";
@@ -24,7 +25,7 @@ export default function HomePage() {
     setLoadingProducts(true);
     getFeaturedProducts(4)
       .then(setProducts)
-      .catch(error => setError(error.message))
+      .catch(() => setError(getPublicErrorMessage()))
       .finally(() => setLoadingProducts(false));
   }, []);
 

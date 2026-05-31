@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { Boxes, ClipboardList, LogIn, LogOut, Save, Truck } from "lucide-react";
 import { getShippingFee, loginAdmin, updateShippingFee } from "@/lib/api";
+import { getPublicErrorMessage } from "@/lib/errors";
 import { money } from "@/lib/format";
 import { clearAdminSession, getAdminSession, setAdminSession } from "@/lib/storage";
 import { ShippingFee, UserSession } from "@/lib/types";
@@ -34,8 +35,8 @@ export default function AdminPage() {
       setShipping(value);
       setShippingFee(String(value.shippingFee));
       setShippingMessage("");
-    } catch (error) {
-      setShippingMessage(error instanceof Error ? error.message : "Could not load shipping fee.");
+    } catch {
+      setShippingMessage(getPublicErrorMessage());
     } finally {
       setShippingLoading(false);
     }
@@ -50,8 +51,8 @@ export default function AdminPage() {
       setSession(user);
       setMessage("");
       await loadShipping();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not sign in.");
+    } catch {
+      setMessage(getPublicErrorMessage());
     }
   }
 
@@ -63,8 +64,8 @@ export default function AdminPage() {
       setShipping(next);
       setShippingFee(String(next.shippingFee));
       setShippingMessage("Shipping fee saved.");
-    } catch (error) {
-      setShippingMessage(error instanceof Error ? error.message : "Could not save shipping fee.");
+    } catch {
+      setShippingMessage(getPublicErrorMessage());
     }
   }
 

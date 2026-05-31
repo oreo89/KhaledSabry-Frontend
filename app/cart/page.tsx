@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { Banknote, Minus, Plus, Smartphone, Trash2 } from "lucide-react";
 import { ensureCart, getShippingFee, placeOrder, removeCartItem, updateCartItem } from "@/lib/api";
+import { getPublicErrorMessage } from "@/lib/errors";
 import { money } from "@/lib/format";
 import { shirtPlaceholder, useImageFallback } from "@/lib/images";
 import { Cart, CheckoutForm, PaymentMethod, ShippingFee } from "@/lib/types";
@@ -38,8 +39,8 @@ export default function CartPage() {
   }
 
   useEffect(() => {
-    load().catch(error => {
-      setMessage(error.message);
+    load().catch(() => {
+      setMessage(getPublicErrorMessage());
       setLoading(false);
     });
   }, []);
@@ -74,8 +75,8 @@ export default function CartPage() {
       setCustomer(blankCustomer);
       setPaymentMethod("cash_on_delivery");
       await load();
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not place order.");
+    } catch {
+      setMessage(getPublicErrorMessage());
     }
   }
 

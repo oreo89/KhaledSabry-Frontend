@@ -10,6 +10,7 @@ import {
   setProductDiscount,
   updateProduct
 } from "@/lib/api";
+import { getPublicErrorMessage } from "@/lib/errors";
 import { joinList, money, splitList } from "@/lib/format";
 import { Product, ProductUpsert } from "@/lib/types";
 import { DataLoader } from "@/components/DataLoader";
@@ -52,8 +53,8 @@ export default function AdminProductsPage() {
   }
 
   useEffect(() => {
-    load().catch(error => {
-      setMessage(error.message);
+    load().catch(() => {
+      setMessage(getPublicErrorMessage());
       setLoading(false);
     });
   }, []);
@@ -147,8 +148,8 @@ export default function AdminProductsPage() {
       reset();
       await load();
       setMessage("Product saved.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not save product.");
+    } catch {
+      setMessage(getPublicErrorMessage());
     }
   }
 

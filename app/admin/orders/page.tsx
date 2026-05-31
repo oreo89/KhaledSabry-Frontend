@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { getAdminOrders, markOrderPaymentReceived } from "@/lib/api";
+import { getPublicErrorMessage } from "@/lib/errors";
 import { money } from "@/lib/format";
 import { Order } from "@/lib/types";
 import { DataLoader } from "@/components/DataLoader";
@@ -18,7 +19,7 @@ export default function AdminOrdersPage() {
     setLoading(true);
     getAdminOrders()
       .then(setOrders)
-      .catch(error => setMessage(error.message))
+      .catch(() => setMessage(getPublicErrorMessage()))
       .finally(() => setLoading(false));
   }, []);
 
@@ -35,7 +36,7 @@ export default function AdminOrdersPage() {
       setMessage(
         errorMessage.includes("(404)") || errorMessage.includes("(405)")
           ? "The backend is not updated yet. Deploy/restart the backend, then try Mark as done again."
-          : errorMessage
+          : getPublicErrorMessage()
       );
     } finally {
       setUpdatingOrderId("");

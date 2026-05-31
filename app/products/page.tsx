@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { getProducts } from "@/lib/api";
+import { getPublicErrorMessage } from "@/lib/errors";
 import { Product, PaginationResult } from "@/lib/types";
 import { DataLoader } from "@/components/DataLoader";
 import { ProductGrid } from "@/components/ProductGrid";
@@ -42,7 +43,7 @@ export default function ProductsPage() {
         setResult(data);
         setError("");
       })
-      .catch(error => setError(error.message))
+      .catch(() => setError(getPublicErrorMessage()))
       .finally(() => setLoading(false));
   }, [params]);
 

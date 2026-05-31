@@ -4,6 +4,7 @@ import Link from "next/link";
 import { use, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { addCartItem, getProduct } from "@/lib/api";
+import { getPublicErrorMessage } from "@/lib/errors";
 import { money } from "@/lib/format";
 import { productImage, useImageFallback } from "@/lib/images";
 import { Product } from "@/lib/types";
@@ -32,7 +33,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
         setSize(data.sizes[0] ?? "");
         setMessage("");
       })
-      .catch(error => setMessage(error instanceof Error ? error.message : "Could not load product."))
+      .catch(() => setMessage(getPublicErrorMessage()))
       .finally(() => setLoading(false));
   }, [productId]);
 
@@ -48,8 +49,8 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
     try {
       await addCartItem(product.id, color, size, quantity);
       setMessage("Added to cart.");
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not add to cart.");
+    } catch {
+      setMessage(getPublicErrorMessage());
     } finally {
       setBusy(false);
     }
