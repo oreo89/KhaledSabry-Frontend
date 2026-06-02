@@ -21,6 +21,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -49,6 +50,7 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
     try {
       await addCartItem(product.id, color, size, quantity);
       setMessage("Added to cart.");
+      setAddedToCart(true);
     } catch {
       setMessage(getPublicErrorMessage());
     } finally {
@@ -184,6 +186,14 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
                   </button>
                 </div>
               </div>
+              {addedToCart && (
+  <Link
+    href="/cart"
+    className="btn btn-success btn-lg w-100 mt-2"
+  >
+    Proceed to Checkout
+  </Link>
+)}
               <p className="message mt-3 mb-0">{message}</p>
             </div>
           </div>

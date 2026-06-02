@@ -50,22 +50,22 @@ export default function HomePage() {
                   New arrivals
                 </Link>
               </div>
-            </div>
+           {/* </div>
             <div className="col-lg-5">
-              <div className="hero-panel p-3">
-                <img className="hero-logo mb-3" src="/MAK-Z-03.png" alt="MAK-Z Clothing" />
-                <div className="brand-gallery">
+             <div className="hero-panel p-3">
+                {/* <img className="hero-logo mb-3" src="/MAK-Z-03.png" alt="MAK-Z Clothing" /> */}
+               {/* <div className="brand-gallery"> 
                   {brandImages.map((image, index) => (
                     <img key={image} src={image} alt={`MAK-Z brand style ${index + 1}`} />
                   ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+                </div> 
+              </div> */}
+            </div> 
+          </div> 
+        </div> 
       </section>
 
-      <section className="section-padding bg-white">
+      {/* <section className="section-padding bg-white">
         <div className="container-xl">
           <div className="row g-3">
             <div className="col-md-4">
@@ -97,7 +97,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       <section className="section-padding">
         <div className="container-xl">
