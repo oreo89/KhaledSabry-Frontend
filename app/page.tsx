@@ -38,8 +38,8 @@ export default function HomePage() {
               <p className="eyebrow mb-3">MAK-Z Clothing</p>
               <h1 className="display-title mb-4">Elevated Daily Wear</h1>
               <p className="hero-text mb-4">
-                Clean pieces, sharp fits, and easy shopping inspired by modern storefronts from Zara, H&M, and Nike:
-                fast browsing, strong visuals, and a checkout built for mobile.
+                MAK-Z: Designed to lead, not to follow.
+              Born from Gen Z, for Gen Z. We believe clothes should speak louder than logos. With bold designs, clean fits, and an unapologetic attitude, we create pieces for those who refuse to blend in. This isn’t just clothing—it’s an extension of who you are.
               </p>
               <div className="d-flex flex-column flex-sm-row gap-2">
                 <Link className="btn btn-dark btn-lg d-inline-flex align-items-center justify-content-center gap-2" href="/products">
