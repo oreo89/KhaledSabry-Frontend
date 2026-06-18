@@ -7,9 +7,18 @@ import { getAdminOrders, markOrderPaymentReceived } from "@/lib/api";
 import { getPublicErrorMessage } from "@/lib/errors";
 import { money } from "@/lib/format";
 import { Order } from "@/lib/types";
+import { AuthGate } from "@/components/AuthGate";
 import { DataLoader } from "@/components/DataLoader";
 
 export default function AdminOrdersPage() {
+  return (
+    <AuthGate>
+      <AdminOrdersContent />
+    </AuthGate>
+  );
+}
+
+function AdminOrdersContent() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingOrderId, setUpdatingOrderId] = useState("");

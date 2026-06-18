@@ -12,7 +12,9 @@ import {
 } from "@/lib/api";
 import { getPublicErrorMessage } from "@/lib/errors";
 import { joinList, money, splitList } from "@/lib/format";
+import { shirtPlaceholder } from "@/lib/images";
 import { Product, ProductUpsert } from "@/lib/types";
+import { AuthGate } from "@/components/AuthGate";
 import { DataLoader } from "@/components/DataLoader";
 
 const blankProduct: ProductUpsert = {
@@ -34,6 +36,14 @@ const blankProduct: ProductUpsert = {
 };
 
 export default function AdminProductsPage() {
+  return (
+    <AuthGate>
+      <AdminProductsContent />
+    </AuthGate>
+  );
+}
+
+function AdminProductsContent() {
   const formPanelRef = useRef<HTMLElement | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -81,7 +91,7 @@ export default function AdminProductsPage() {
     setForm(next);
     setColorText(joinList(next.colors));
     setSizeText(joinList(next.sizes));
-    setImageText(joinList(next.imageUrls.filter(url => url !== next.pictureUrl && !url.startsWith("data:"))));
+    setImageText(joinList(next.imageUrls.filter(url => url !== next.pictureUrl && url !== shirtPlaceholder && !url.startsWith("data:"))));
     window.setTimeout(() => formPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
@@ -115,8 +125,8 @@ export default function AdminProductsPage() {
     try {
       const dataUrls = await Promise.all(files.map(readImageFile));
       setForm(current => {
-        const pictureUrl = current.pictureUrl || dataUrls[0] || "";
-        const imageUrls = Array.from(new Set([...current.imageUrls, ...dataUrls]));
+        const pictureUrl = current.pictureUrl && current.pictureUrl !== shirtPlaceholder ? current.pictureUrl : dataUrls[0] || "";
+        const imageUrls = Array.from(new Set([...current.imageUrls.filter(url => url !== shirtPlaceholder), ...dataUrls]));
         return { ...current, pictureUrl, imageUrls };
       });
       setMessage(`${dataUrls.length} image${dataUrls.length === 1 ? "" : "s"} loaded from your PC.`);
@@ -128,9 +138,10 @@ export default function AdminProductsPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const linkedImages = splitList(imageText);
-    const imageUrls = Array.from(new Set([...form.imageUrls, ...linkedImages]));
+    const imageUrls = Array.from(new Set([...form.imageUrls, ...linkedImages].filter(url => url && url !== shirtPlaceholder)));
     const payload = {
       ...form,
+      pictureUrl: form.pictureUrl === shirtPlaceholder ? imageUrls[0] || "" : form.pictureUrl,
       brandId: 1,
       typeId: form.typeId ?? 0,
       colors: splitList(colorText),
@@ -236,8 +247,8 @@ export default function AdminProductsPage() {
                   Upload images from PC
                   <input accept="image/*" multiple type="file" onChange={uploadImages} />
                 </label>
-                {form.pictureUrl && <img className="admin-preview" src={form.pictureUrl} alt="Selected product preview" />}
-                {form.imageUrls.filter(url => url !== form.pictureUrl).slice(0, 6).map(url => (
+                {form.pictureUrl && form.pictureUrl !== shirtPlaceholder && <img className="admin-preview" src={form.pictureUrl} alt="Selected product preview" />}
+                {form.imageUrls.filter(url => url !== form.pictureUrl && url !== shirtPlaceholder).slice(0, 6).map(url => (
                   <img className="admin-preview" key={url} src={url} alt="Selected gallery preview" />
                 ))}
               </div>

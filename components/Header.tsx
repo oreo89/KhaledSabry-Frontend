@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Menu, Search, Shield, ShoppingBag, ShoppingCart, UserRound } from "lucide-react";
+import { Menu, Search, Shield, ShoppingBag, ShoppingCart } from "lucide-react";
 
 export function Header() {
   useEffect(() => {
@@ -57,9 +57,6 @@ export function Header() {
             <div className="d-flex flex-column flex-lg-row gap-2">
               <Link className="btn btn-light icon-button" href="/products" aria-label="Search products">
                 <Search size={18} />
-              </Link>
-              <Link className="btn btn-light icon-button" href="/admin" aria-label="Admin">
-                <UserRound size={18} />
               </Link>
               <Link className="btn btn-dark d-inline-flex align-items-center gap-2" href="/cart">
                 <ShoppingCart size={18} />

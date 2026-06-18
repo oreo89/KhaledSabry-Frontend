@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Boxes, ClipboardList, LogIn, LogOut, Save, Truck } from "lucide-react";
 import { getShippingFee, loginAdmin, updateShippingFee } from "@/lib/api";
 import { getPublicErrorMessage } from "@/lib/errors";
@@ -11,6 +12,7 @@ import { ShippingFee, UserSession } from "@/lib/types";
 import { DataLoader } from "@/components/DataLoader";
 
 export default function AdminPage() {
+  const router = useRouter();
   const [session, setSession] = useState<UserSession | null>(null);
   const [email, setEmail] = useState("admin@shop.com");
   const [password, setPassword] = useState("");
@@ -51,6 +53,10 @@ export default function AdminPage() {
       setSession(user);
       setMessage("");
       await loadShipping();
+      const next = new URLSearchParams(window.location.search).get("next");
+      if (next?.startsWith("/") && !next.startsWith("//")) {
+        router.replace(next);
+      }
     } catch {
       setMessage(getPublicErrorMessage());
     }

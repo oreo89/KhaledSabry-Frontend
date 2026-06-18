@@ -6,7 +6,7 @@ import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { addCartItem, getProduct } from "@/lib/api";
 import { getPublicErrorMessage } from "@/lib/errors";
 import { money } from "@/lib/format";
-import { productImage, useImageFallback } from "@/lib/images";
+import { productImage, shirtPlaceholder, useImageFallback } from "@/lib/images";
 import { Product } from "@/lib/types";
 import { DataLoader } from "@/components/DataLoader";
 
@@ -40,7 +40,13 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
 
   const gallery = useMemo(() => {
     if (!product) return [];
-    return Array.from(new Set([productImage(product.pictureUrl, product.imageUrls), ...product.imageUrls].filter(Boolean)));
+    return Array.from(
+      new Set(
+        [productImage(product.pictureUrl, product.imageUrls), ...product.imageUrls].filter(
+          image => image && image !== shirtPlaceholder
+        )
+      )
+    );
   }, [product]);
 
   async function add() {
@@ -115,22 +121,16 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
               <p className="text-muted lh-lg">{product.description}</p>
 
               <div className="row g-2 mb-4">
-                <div className="col-4">
+                <div className="col-6">
                   <div className="border rounded-4 p-3 h-100 bg-white">
                     <dt className="small text-muted fw-black text-uppercase">Material</dt>
                     <dd className="fw-black mb-0">{product.material}</dd>
                   </div>
                 </div>
-                <div className="col-4">
+                <div className="col-6">
                   <div className="border rounded-4 p-3 h-100 bg-white">
                     <dt className="small text-muted fw-black text-uppercase">Fit</dt>
                     <dd className="fw-black mb-0">{product.gender}</dd>
-                  </div>
-                </div>
-                <div className="col-4">
-                  <div className="border rounded-4 p-3 h-100 bg-white">
-                    <dt className="small text-muted fw-black text-uppercase">Stock</dt>
-                    <dd className="fw-black mb-0">{product.stockQuantity > 0 ? `${product.stockQuantity}` : "Out"}</dd>
                   </div>
                 </div>
               </div>
@@ -187,13 +187,14 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
                 </div>
               </div>
               {addedToCart && (
-  <Link
-    href="/cart"
-    className="btn btn-success btn-lg w-100 mt-2"
-  >
-    Proceed to Checkout
-  </Link>
-)}
+                <Link
+                  href="/cart"
+                  className="btn btn-accent btn-lg w-100 mt-2 d-inline-flex align-items-center justify-content-center gap-2"
+                >
+                  <ShoppingCart size={18} />
+                  Proceed to checkout
+                </Link>
+              )}
               <p className="message mt-3 mb-0">{message}</p>
             </div>
           </div>
