@@ -22,6 +22,7 @@ const blankProduct: ProductUpsert = {
   description: "",
   pictureUrl: "",
   imageUrls: [],
+  colorImageUrls: {},
   price: 0,
   discountPercentage: 0,
   colors: [],
@@ -34,6 +35,27 @@ const blankProduct: ProductUpsert = {
   brandId: 1,
   typeId: 0
 };
+
+type ColorImageRow = {
+  id: string;
+  color: string;
+  imageText: string;
+  images: string[];
+};
+
+function makeRow(color = "", images: string[] = []): ColorImageRow {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    color,
+    imageText: joinList(images.filter(url => !url.startsWith("data:"))),
+    images
+  };
+}
+
+function getColorImages(colorImageUrls: Record<string, string[]>, color: string) {
+  const match = Object.entries(colorImageUrls).find(([key]) => key.toLowerCase() === color.toLowerCase());
+  return match?.[1] ?? [];
+}
 
 export default function AdminProductsPage() {
   return (
@@ -48,7 +70,7 @@ function AdminProductsContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(blankProduct);
-  const [colorText, setColorText] = useState("");
+  const [colorRows, setColorRows] = useState<ColorImageRow[]>([makeRow()]);
   const [sizeText, setSizeText] = useState("");
   const [imageText, setImageText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -76,6 +98,7 @@ function AdminProductsContent() {
       description: product.description,
       pictureUrl: product.pictureUrl,
       imageUrls: product.imageUrls,
+      colorImageUrls: product.colorImageUrls,
       price: product.price,
       discountPercentage: product.discountPercentage,
       colors: product.colors,
@@ -89,16 +112,21 @@ function AdminProductsContent() {
       typeId: product.typeId || 0
     };
     setForm(next);
-    setColorText(joinList(next.colors));
+    setColorRows(next.colors.length > 0
+      ? next.colors.map(color => makeRow(color, getColorImages(next.colorImageUrls, color)))
+      : [makeRow()]);
     setSizeText(joinList(next.sizes));
-    setImageText(joinList(next.imageUrls.filter(url => url !== next.pictureUrl && url !== shirtPlaceholder && !url.startsWith("data:"))));
+    setImageText(joinList(next.imageUrls.filter(url => {
+      const colorImages = Object.values(next.colorImageUrls).flat();
+      return url !== next.pictureUrl && url !== shirtPlaceholder && !url.startsWith("data:") && !colorImages.includes(url);
+    })));
     window.setTimeout(() => formPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
 
   function reset() {
     setEditingId(null);
     setForm({ ...blankProduct });
-    setColorText("");
+    setColorRows([makeRow()]);
     setSizeText("");
     setImageText("");
   }
@@ -135,18 +163,64 @@ function AdminProductsContent() {
     }
   }
 
+  async function uploadColorImages(rowId: string, event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    if (files.length === 0) return;
+
+    try {
+      const dataUrls = await Promise.all(files.map(readImageFile));
+      setColorRows(rows => rows.map(row => row.id === rowId
+        ? { ...row, images: Array.from(new Set([...row.images, ...dataUrls])) }
+        : row
+      ));
+      setMessage(`${dataUrls.length} image${dataUrls.length === 1 ? "" : "s"} loaded for this color.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not read those images.");
+    }
+  }
+
+  function updateColorRow(rowId: string, patch: Partial<ColorImageRow>) {
+    setColorRows(rows => rows.map(row => row.id === rowId ? { ...row, ...patch } : row));
+  }
+
+  function addColorRow() {
+    setColorRows(rows => [...rows, makeRow()]);
+  }
+
+  function removeColorRow(rowId: string) {
+    setColorRows(rows => rows.length > 1 ? rows.filter(row => row.id !== rowId) : [makeRow()]);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const linkedImages = splitList(imageText);
-    const imageUrls = Array.from(new Set([...form.imageUrls, ...linkedImages].filter(url => url && url !== shirtPlaceholder)));
+    const normalizedColorRows = colorRows
+      .map(row => ({
+        color: row.color.trim(),
+        images: Array.from(new Set([...row.images, ...splitList(row.imageText)].filter(url => url && url !== shirtPlaceholder)))
+      }))
+      .filter(row => row.color);
+    const colorImageEntries = new Map<string, string[]>();
+    normalizedColorRows.forEach(row => {
+      if (row.images.length === 0) return;
+      const existingColor = Array.from(colorImageEntries.keys()).find(key => key.toLowerCase() === row.color.toLowerCase());
+      const key = existingColor ?? row.color;
+      colorImageEntries.set(key, Array.from(new Set([...(colorImageEntries.get(key) ?? []), ...row.images])));
+    });
+    const colorImageUrls = Object.fromEntries(colorImageEntries);
+    const colorImages = normalizedColorRows.flatMap(row => row.images);
+    const imageUrls = Array.from(new Set([...form.imageUrls, ...linkedImages, ...colorImages].filter(url => url && url !== shirtPlaceholder)));
+    const pictureUrl = form.pictureUrl && form.pictureUrl !== shirtPlaceholder ? form.pictureUrl : imageUrls[0] || "";
     const payload = {
       ...form,
-      pictureUrl: form.pictureUrl === shirtPlaceholder ? imageUrls[0] || "" : form.pictureUrl,
+      pictureUrl,
       brandId: 1,
       typeId: form.typeId ?? 0,
-      colors: splitList(colorText),
+      colors: normalizedColorRows.map(row => row.color),
       sizes: splitList(sizeText),
-      imageUrls
+      imageUrls,
+      colorImageUrls
     };
 
     setMessage("Saving...");
@@ -224,20 +298,74 @@ function AdminProductsContent() {
                   <input className="form-control" value={form.gender} onChange={event => setForm({ ...form, gender: event.target.value })} />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label small text-muted fw-bold">Colors</label>
-                  <input className="form-control" required value={colorText} onChange={event => setColorText(event.target.value)} placeholder="White, Navy" />
-                </div>
-                <div className="col-md-6">
                   <label className="form-label small text-muted fw-bold">Sizes</label>
                   <input className="form-control" required value={sizeText} onChange={event => setSizeText(event.target.value)} placeholder="S, M, L" />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label small text-muted fw-bold">Main image URL</label>
-                  <input className="form-control" required value={form.pictureUrl} onChange={event => setForm({ ...form, pictureUrl: event.target.value })} />
+                  <input className="form-control" value={form.pictureUrl} onChange={event => setForm({ ...form, pictureUrl: event.target.value })} placeholder="Optional, first uploaded color image is used if empty" />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label small text-muted fw-bold">Gallery image links</label>
+                  <label className="form-label small text-muted fw-bold">General gallery image links</label>
                   <textarea className="form-control" rows={2} value={imageText} onChange={event => setImageText(event.target.value)} placeholder="Paste links separated by commas or new lines" />
+                </div>
+              </div>
+
+              <div className="color-image-editor">
+                <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                  <label className="form-label small text-muted fw-bold mb-0">Color images</label>
+                  <button className="btn btn-outline-dark btn-sm d-inline-flex align-items-center gap-2" type="button" onClick={addColorRow}>
+                    <Plus size={14} />
+                    Add color
+                  </button>
+                </div>
+                <div className="d-grid gap-3">
+                  {colorRows.map((row, index) => {
+                    const previews = Array.from(new Set([...row.images, ...splitList(row.imageText)]))
+                      .filter(url => url && url !== shirtPlaceholder)
+                      .slice(0, 6);
+
+                    return (
+                      <div className="color-image-row" key={row.id}>
+                        <div className="row g-3">
+                          <div className="col-md-4">
+                            <label className="form-label small text-muted fw-bold">Color {index + 1}</label>
+                            <input
+                              className="form-control"
+                              required
+                              value={row.color}
+                              onChange={event => updateColorRow(row.id, { color: event.target.value })}
+                              placeholder="White"
+                            />
+                          </div>
+                          <div className="col-md-8">
+                            <label className="form-label small text-muted fw-bold">Images for this color</label>
+                            <textarea
+                              className="form-control"
+                              rows={2}
+                              value={row.imageText}
+                              onChange={event => updateColorRow(row.id, { imageText: event.target.value })}
+                              placeholder="Paste links separated by commas or new lines"
+                            />
+                          </div>
+                        </div>
+                        <div className="d-flex flex-wrap gap-2 align-items-center mt-3">
+                          <label className="btn btn-outline-dark btn-sm file-picker mb-0 d-inline-flex align-items-center gap-2">
+                            <Upload size={14} />
+                            Upload color images
+                            <input accept="image/*" multiple type="file" onChange={event => uploadColorImages(row.id, event)} />
+                          </label>
+                          <button className="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-2" type="button" onClick={() => removeColorRow(row.id)}>
+                            <Trash2 size={14} />
+                            Remove
+                          </button>
+                          {previews.map(url => (
+                            <img className="admin-preview" key={url} src={url} alt={`${row.color || "Color"} preview`} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -248,7 +376,10 @@ function AdminProductsContent() {
                   <input accept="image/*" multiple type="file" onChange={uploadImages} />
                 </label>
                 {form.pictureUrl && form.pictureUrl !== shirtPlaceholder && <img className="admin-preview" src={form.pictureUrl} alt="Selected product preview" />}
-                {form.imageUrls.filter(url => url !== form.pictureUrl && url !== shirtPlaceholder).slice(0, 6).map(url => (
+                {form.imageUrls.filter(url => {
+                  const colorImages = colorRows.flatMap(row => row.images);
+                  return url !== form.pictureUrl && url !== shirtPlaceholder && !colorImages.includes(url);
+                }).slice(0, 6).map(url => (
                   <img className="admin-preview" key={url} src={url} alt="Selected gallery preview" />
                 ))}
               </div>

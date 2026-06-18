@@ -11,6 +11,7 @@ export type Product = {
   description: string;
   pictureUrl: string;
   imageUrls: string[];
+  colorImageUrls: Record<string, string[]>;
   price: number;
   discountPercentage: number;
   priceAfterDiscount: number;
@@ -32,6 +33,7 @@ export type ProductUpsert = {
   description: string;
   pictureUrl: string;
   imageUrls: string[];
+  colorImageUrls: Record<string, string[]>;
   price: number;
   discountPercentage: number;
   colors: string[];

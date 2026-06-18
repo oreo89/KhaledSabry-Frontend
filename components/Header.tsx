@@ -47,11 +47,6 @@ export function Header() {
                   Shop
                 </Link>
               </li>
-              <li className="nav-item">
-                <Link className="nav-link fw-semibold" href="/products?sortingOptions=3">
-                  New Arrivals
-                </Link>
-              </li>
             </ul>
 
             <div className="d-flex flex-column flex-lg-row gap-2">

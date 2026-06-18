@@ -10,6 +10,11 @@ import { productImage, shirtPlaceholder, useImageFallback } from "@/lib/images";
 import { Product } from "@/lib/types";
 import { DataLoader } from "@/components/DataLoader";
 
+function getColorImages(product: Product, selectedColor: string) {
+  const match = Object.entries(product.colorImageUrls).find(([color]) => color.toLowerCase() === selectedColor.toLowerCase());
+  return match?.[1] ?? [];
+}
+
 export default function ProductDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const productId = Number(id);
@@ -27,10 +32,12 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
     setLoading(true);
     getProduct(productId)
       .then(data => {
-        const image = productImage(data.pictureUrl, data.imageUrls);
+        const firstColor = data.colors[0] ?? "";
+        const firstColorImages = firstColor ? getColorImages(data, firstColor) : [];
+        const image = productImage(data.pictureUrl, firstColorImages.length > 0 ? firstColorImages : data.imageUrls);
         setProduct(data);
         setSelectedImage(image);
-        setColor(data.colors[0] ?? "");
+        setColor(firstColor);
         setSize(data.sizes[0] ?? "");
         setMessage("");
       })
@@ -40,14 +47,27 @@ export default function ProductDetailsPage({ params }: { params: Promise<{ id: s
 
   const gallery = useMemo(() => {
     if (!product) return [];
+    const colorImages = color ? getColorImages(product, color) : [];
+    const images = colorImages.length > 0 ? colorImages : product.imageUrls;
     return Array.from(
       new Set(
-        [productImage(product.pictureUrl, product.imageUrls), ...product.imageUrls].filter(
+        [productImage(colorImages[0] || product.pictureUrl, images), ...images].filter(
           image => image && image !== shirtPlaceholder
         )
       )
     );
-  }, [product]);
+  }, [product, color]);
+
+  useEffect(() => {
+    if (gallery.length === 0) {
+      setSelectedImage(shirtPlaceholder);
+      return;
+    }
+
+    if (!gallery.includes(selectedImage)) {
+      setSelectedImage(gallery[0]);
+    }
+  }, [gallery, selectedImage]);
 
   async function add() {
     if (!product || !color || !size) return;

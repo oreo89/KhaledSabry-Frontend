@@ -313,6 +313,20 @@ a {
   border-radius: 0.75rem;
 }
 
+.color-image-editor {
+  border: 1px solid var(--makz-line);
+  border-radius: 0.75rem;
+  background: #faf8f4;
+  padding: 1rem;
+}
+
+.color-image-row {
+  border: 1px solid var(--makz-line);
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 1rem;
+}
+
 .file-picker input {
   display: none;
 }

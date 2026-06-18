@@ -57,6 +57,20 @@ function asRecord(payload: unknown) {
   return payload && typeof payload === "object" ? payload as Record<string, unknown> : {};
 }
 
+function normalizeStringList(value: unknown) {
+  return Array.isArray(value) ? value.map(String).filter(Boolean) : [];
+}
+
+function normalizeColorImageUrls(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .map(([color, images]) => [color, normalizeStringList(images)] as const)
+      .filter(([color, images]) => color.trim() && images.length > 0)
+  );
+}
+
 function normalizeProduct(payload: unknown): Product {
   const product = asRecord(payload);
   const price = Number(product.price ?? 0);
@@ -67,7 +81,8 @@ function normalizeProduct(payload: unknown): Product {
     name: String(product.name ?? ""),
     description: String(product.description ?? ""),
     pictureUrl: String(product.pictureUrl ?? ""),
-    imageUrls: Array.isArray(product.imageUrls) ? product.imageUrls.map(String) : [],
+    imageUrls: normalizeStringList(product.imageUrls),
+    colorImageUrls: normalizeColorImageUrls(product.colorImageUrls),
     price,
     discountPercentage,
     priceAfterDiscount: Number(product.priceAfterDiscount ?? price),

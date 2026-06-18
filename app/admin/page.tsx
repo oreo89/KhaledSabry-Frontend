@@ -27,8 +27,12 @@ export default function AdminPage() {
     setSession(savedSession);
     if (savedSession) {
       loadShipping();
+      const next = new URLSearchParams(window.location.search).get("next");
+      if (next?.startsWith("/") && !next.startsWith("//")) {
+        router.replace(next);
+      }
     }
-  }, []);
+  }, [router]);
 
   async function loadShipping() {
     setShippingLoading(true);

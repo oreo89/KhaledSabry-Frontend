@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search } from "lucide-react";
 import { getProducts } from "@/lib/api";
 import { getPublicErrorMessage } from "@/lib/errors";
 import { Product, PaginationResult } from "@/lib/types";
@@ -20,8 +19,6 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("");
-  const [color, setColor] = useState("");
-  const [size, setSize] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -31,10 +28,8 @@ export default function ProductsPage() {
     const next = new URLSearchParams({ pageIndex: String(page), pageSize: "8" });
     if (search) next.set("searchValue", search);
     if (sort) next.set("sortingOptions", sort);
-    if (color) next.set("color", color);
-    if (size) next.set("size", size);
     return next;
-  }, [page, search, sort, color, size]);
+  }, [page, search, sort]);
 
   useEffect(() => {
     setLoading(true);
@@ -53,7 +48,7 @@ export default function ProductsPage() {
         <div className="container-xl">
           <p className="eyebrow mb-2">Shop MAK-Z</p>
           <h1 className="section-title mb-3">All Products</h1>
-          <p className="text-muted mb-0">Browse the collection with quick filters designed for small screens.</p>
+          <p className="text-muted mb-0">Browse the collection with quick search and sorting.</p>
         </div>
       </section>
 
@@ -61,16 +56,15 @@ export default function ProductsPage() {
         <div className="container-xl">
           <div className="filter-panel p-3 p-md-4 mb-4">
             <div className="row g-3 align-items-end">
-              <div className="col-12 col-md-4">
+              <div className="col-12 col-md-8">
                 <label className="form-label fw-bold text-muted small">Search</label>
                 <input
                   className="form-control form-control-lg"
                   value={search}
                   onChange={event => { setPage(1); setSearch(event.target.value); }}
-                  placeholder="Oxford, linen..."
                 />
               </div>
-              <div className="col-6 col-md-2">
+              <div className="col-12 col-md-4">
                 <label className="form-label fw-bold text-muted small">Sort</label>
                 <select className="form-select form-select-lg" value={sort} onChange={event => { setPage(1); setSort(event.target.value); }}>
                   <option value="">Default</option>
@@ -79,20 +73,6 @@ export default function ProductsPage() {
                   <option value="3">Price low</option>
                   <option value="4">Price high</option>
                 </select>
-              </div>
-              <div className="col-6 col-md-2">
-                <label className="form-label fw-bold text-muted small">Color</label>
-                <input className="form-control form-control-lg" value={color} onChange={event => { setPage(1); setColor(event.target.value); }} placeholder="White" />
-              </div>
-              <div className="col-6 col-md-2">
-                <label className="form-label fw-bold text-muted small">Size</label>
-                <input className="form-control form-control-lg" value={size} onChange={event => { setPage(1); setSize(event.target.value); }} placeholder="M" />
-              </div>
-              <div className="col-6 col-md-2">
-                <button className="btn btn-dark btn-lg w-100 d-inline-flex align-items-center justify-content-center gap-2" type="button" onClick={() => setPage(1)}>
-                  <Search size={17} />
-                  Apply
-                </button>
               </div>
             </div>
           </div>
