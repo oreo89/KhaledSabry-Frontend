@@ -7,7 +7,7 @@ type RequestOptions = RequestInit & {
 
 const configuredApiBaseUrl = (
   process.env.NEXT_PUBLIC_API_BASE_URL ??
-  "https://makz-api-ayawaha6grc8cnhs.westeurope-01.azurewebsites.net"
+    "https://makz-api-ayawaha6grc8cnhs.italynorth-01.azurewebsites.net"
 ).replace(/\/+$/, "");
 const apiBaseUrl = configuredApiBaseUrl.endsWith("/api") ? configuredApiBaseUrl : `${configuredApiBaseUrl}/api`;
 
