@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://khaledsabry-backend-6lda.onrender.com";
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://makz-api-ayawaha6grc8cnhs.westeurope-01.azurewebsites.net";
 const apiHostname = new URL(apiBaseUrl).hostname;
 
 const nextConfig = {
