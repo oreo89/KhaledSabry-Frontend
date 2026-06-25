@@ -187,8 +187,16 @@ export async function ensureCart() {
   return cart;
 }
 
+export async function getSavedCart() {
+  const existing = getCartId();
+  if (!existing) return null;
+
+  return request<Cart>(`/carts/${existing}`);
+}
+
 export async function addCartItem(productId: number, color: string, size: string, quantity = 1) {
-  const cart = await ensureCart();
+  const existing = getCartId();
+  const cart = existing ? { id: existing } : await request<Cart>("/carts", { method: "POST" });
   const updated = await request<Cart>(`/carts/${cart.id}/items`, {
     method: "PUT",
     body: JSON.stringify({ productId, color, size, quantity })
@@ -198,17 +206,21 @@ export async function addCartItem(productId: number, color: string, size: string
 }
 
 export async function updateCartItem(productId: number, color: string, size: string, quantity: number) {
-  const cart = await ensureCart();
-  return request<Cart>(`/carts/${cart.id}/items`, {
+  const cartId = getCartId();
+  if (!cartId) throw new Error("Cart is empty.");
+
+  return request<Cart>(`/carts/${cartId}/items`, {
     method: "PATCH",
     body: JSON.stringify({ productId, color, size, quantity })
   });
 }
 
 export async function removeCartItem(productId: number, color: string, size: string) {
-  const cart = await ensureCart();
+  const cartId = getCartId();
+  if (!cartId) throw new Error("Cart is empty.");
+
   const params = new URLSearchParams({ color, size });
-  return request<Cart>(`/carts/${cart.id}/items/${productId}?${params.toString()}`, {
+  return request<Cart>(`/carts/${cartId}/items/${productId}?${params.toString()}`, {
     method: "DELETE"
   });
 }

@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { Banknote, Minus, Plus, Smartphone, Trash2 } from "lucide-react";
-import { ensureCart, getShippingFee, placeOrder, removeCartItem, updateCartItem } from "@/lib/api";
+import { getSavedCart, getShippingFee, placeOrder, removeCartItem, updateCartItem } from "@/lib/api";
 import { getPublicErrorMessage } from "@/lib/errors";
 import { money } from "@/lib/format";
 import { shirtPlaceholder, useImageFallback } from "@/lib/images";
@@ -32,7 +32,7 @@ export default function CartPage() {
 
   async function load() {
     setLoading(true);
-    const [nextCart, nextShipping] = await Promise.all([ensureCart(), getShippingFee()]);
+    const [nextCart, nextShipping] = await Promise.all([getSavedCart(), getShippingFee()]);
     setCart(nextCart);
     setShipping(nextShipping);
     setLoading(false);

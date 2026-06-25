@@ -17,12 +17,22 @@ const emptyResult: PaginationResult<Product> = {
 export default function ProductsPage() {
   const [result, setResult] = useState(emptyResult);
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const totalPages = Math.max(1, Math.ceil(result.totalCount / result.pageSize));
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setPage(1);
+      setSearch(searchInput.trim());
+    }, 400);
+
+    return () => window.clearTimeout(timeout);
+  }, [searchInput]);
 
   const params = useMemo(() => {
     const next = new URLSearchParams({ pageIndex: String(page), pageSize: "8" });
@@ -60,8 +70,8 @@ export default function ProductsPage() {
                 <label className="form-label fw-bold text-muted small">Search</label>
                 <input
                   className="form-control form-control-lg"
-                  value={search}
-                  onChange={event => { setPage(1); setSearch(event.target.value); }}
+                  value={searchInput}
+                  onChange={event => setSearchInput(event.target.value)}
                 />
               </div>
               <div className="col-12 col-md-4">
