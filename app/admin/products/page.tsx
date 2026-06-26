@@ -40,17 +40,13 @@ type ColorImageRow = {
   id: string;
   color: string;
   imageText: string;
-  images: string[];
 };
 
 function makeRow(color = "", images: string[] = []): ColorImageRow {
-  const linkedImages = filterGoogleDriveLinks(images);
-
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     color,
-    imageText: joinList(linkedImages),
-    images: linkedImages
+    imageText: joinList(filterGoogleDriveLinks(images))
   };
 }
 
@@ -289,11 +285,11 @@ function AdminProductsContent() {
                 </div>
                 <div className="col-md-6">
                   <label className="form-label small text-muted fw-bold">Main image URL</label>
-                  <input className="form-control" value={form.pictureUrl} onChange={event => setForm({ ...form, pictureUrl: event.target.value })} placeholder="Optional, first uploaded color image is used if empty" />
+                  <input className="form-control" value={form.pictureUrl} onChange={event => setForm({ ...form, pictureUrl: event.target.value })} placeholder="Google Drive link, or leave empty to use the first color image" />
                 </div>
                 <div className="col-md-6">
                   <label className="form-label small text-muted fw-bold">General gallery image links</label>
-                  <textarea className="form-control" rows={2} value={imageText} onChange={event => setImageText(event.target.value)} placeholder="Paste links separated by commas or new lines" />
+                  <textarea className="form-control" rows={2} value={imageText} onChange={event => setImageText(event.target.value)} placeholder="Paste Google Drive links separated by commas or new lines" />
                 </div>
               </div>
 
@@ -325,13 +321,13 @@ function AdminProductsContent() {
                             />
                           </div>
                           <div className="col-md-8">
-                            <label className="form-label small text-muted fw-bold">Images for this color</label>
+                            <label className="form-label small text-muted fw-bold">Google Drive images for {row.color || "this color"}</label>
                             <textarea
                               className="form-control"
                               rows={2}
                               value={row.imageText}
                               onChange={event => updateColorRow(row.id, { imageText: event.target.value })}
-                              placeholder="Paste links separated by commas or new lines"
+                              placeholder="Paste this color's Google Drive links separated by commas or new lines"
                             />
                           </div>
                         </div>
