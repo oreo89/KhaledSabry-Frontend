@@ -1,8 +1,8 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Plus, RefreshCw, Save, Tag, Trash2, Upload } from "lucide-react";
+import { Plus, RefreshCw, Save, Tag, Trash2 } from "lucide-react";
 import {
   createProduct,
   deleteProduct,
@@ -44,17 +44,32 @@ type ColorImageRow = {
 };
 
 function makeRow(color = "", images: string[] = []): ColorImageRow {
+  const linkedImages = filterGoogleDriveLinks(images);
+
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     color,
-    imageText: joinList(images.filter(url => !url.startsWith("data:"))),
-    images
+    imageText: joinList(linkedImages),
+    images: linkedImages
   };
 }
 
 function getColorImages(colorImageUrls: Record<string, string[]>, color: string) {
   const match = Object.entries(colorImageUrls).find(([key]) => key.toLowerCase() === color.toLowerCase());
   return match?.[1] ?? [];
+}
+
+function isGoogleDriveLink(url: string) {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return hostname === "drive.google.com" || hostname.endsWith(".drive.google.com");
+  } catch {
+    return false;
+  }
+}
+
+function filterGoogleDriveLinks(urls: string[]) {
+  return urls.filter(url => url && url !== shirtPlaceholder && isGoogleDriveLink(url));
 }
 
 export default function AdminProductsPage() {
@@ -93,12 +108,19 @@ function AdminProductsContent() {
 
   function edit(product: Product) {
     setEditingId(product.id);
+    const imageUrls = filterGoogleDriveLinks(product.imageUrls);
+    const pictureUrl = isGoogleDriveLink(product.pictureUrl) ? product.pictureUrl : imageUrls[0] || "";
+    const colorImageUrls = Object.fromEntries(
+      Object.entries(product.colorImageUrls)
+        .map(([color, urls]) => [color, filterGoogleDriveLinks(urls)] as const)
+        .filter(([, urls]) => urls.length > 0)
+    );
     const next = {
       name: product.name,
       description: product.description,
-      pictureUrl: product.pictureUrl,
-      imageUrls: product.imageUrls,
-      colorImageUrls: product.colorImageUrls,
+      pictureUrl,
+      imageUrls,
+      colorImageUrls,
       price: product.price,
       discountPercentage: product.discountPercentage,
       colors: product.colors,
@@ -118,7 +140,7 @@ function AdminProductsContent() {
     setSizeText(joinList(next.sizes));
     setImageText(joinList(next.imageUrls.filter(url => {
       const colorImages = Object.values(next.colorImageUrls).flat();
-      return url !== next.pictureUrl && url !== shirtPlaceholder && !url.startsWith("data:") && !colorImages.includes(url);
+      return url !== next.pictureUrl && url !== shirtPlaceholder && !colorImages.includes(url);
     })));
     window.setTimeout(() => formPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
   }
@@ -129,55 +151,6 @@ function AdminProductsContent() {
     setColorRows([makeRow()]);
     setSizeText("");
     setImageText("");
-  }
-
-  function readImageFile(file: File) {
-    return new Promise<string>((resolve, reject) => {
-      if (!file.type.startsWith("image/")) {
-        reject(new Error(`${file.name} is not an image file.`));
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result ?? ""));
-      reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function uploadImages(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-    if (files.length === 0) return;
-
-    try {
-      const dataUrls = await Promise.all(files.map(readImageFile));
-      setForm(current => {
-        const pictureUrl = current.pictureUrl && current.pictureUrl !== shirtPlaceholder ? current.pictureUrl : dataUrls[0] || "";
-        const imageUrls = Array.from(new Set([...current.imageUrls.filter(url => url !== shirtPlaceholder), ...dataUrls]));
-        return { ...current, pictureUrl, imageUrls };
-      });
-      setMessage(`${dataUrls.length} image${dataUrls.length === 1 ? "" : "s"} loaded from your PC.`);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not read those images.");
-    }
-  }
-
-  async function uploadColorImages(rowId: string, event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-    if (files.length === 0) return;
-
-    try {
-      const dataUrls = await Promise.all(files.map(readImageFile));
-      setColorRows(rows => rows.map(row => row.id === rowId
-        ? { ...row, images: Array.from(new Set([...row.images, ...dataUrls])) }
-        : row
-      ));
-      setMessage(`${dataUrls.length} image${dataUrls.length === 1 ? "" : "s"} loaded for this color.`);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Could not read those images.");
-    }
   }
 
   function updateColorRow(rowId: string, patch: Partial<ColorImageRow>) {
@@ -195,10 +168,23 @@ function AdminProductsContent() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const linkedImages = splitList(imageText);
+    const colorLinkGroups = colorRows.map(row => splitList(row.imageText));
+    const allImageLinks = [
+      form.pictureUrl,
+      ...linkedImages,
+      ...colorLinkGroups.flat()
+    ].filter(Boolean);
+    const invalidLinks = allImageLinks.filter(url => !isGoogleDriveLink(url));
+
+    if (invalidLinks.length > 0) {
+      setMessage("Only Google Drive image links are allowed. Remove any other image links before saving.");
+      return;
+    }
+
     const normalizedColorRows = colorRows
       .map(row => ({
         color: row.color.trim(),
-        images: Array.from(new Set([...row.images, ...splitList(row.imageText)].filter(url => url && url !== shirtPlaceholder)))
+        images: Array.from(new Set(splitList(row.imageText).filter(url => url && url !== shirtPlaceholder)))
       }))
       .filter(row => row.color);
     const colorImageEntries = new Map<string, string[]>();
@@ -210,7 +196,7 @@ function AdminProductsContent() {
     });
     const colorImageUrls = Object.fromEntries(colorImageEntries);
     const colorImages = normalizedColorRows.flatMap(row => row.images);
-    const imageUrls = Array.from(new Set([...form.imageUrls, ...linkedImages, ...colorImages].filter(url => url && url !== shirtPlaceholder)));
+    const imageUrls = Array.from(new Set([...linkedImages, ...colorImages].filter(url => url && url !== shirtPlaceholder)));
     const pictureUrl = form.pictureUrl && form.pictureUrl !== shirtPlaceholder ? form.pictureUrl : imageUrls[0] || "";
     const payload = {
       ...form,
@@ -321,9 +307,9 @@ function AdminProductsContent() {
                 </div>
                 <div className="d-grid gap-3">
                   {colorRows.map((row, index) => {
-                    const previews = Array.from(new Set([...row.images, ...splitList(row.imageText)]))
-                      .filter(url => url && url !== shirtPlaceholder)
-                      .slice(0, 6);
+                const previews = Array.from(new Set(splitList(row.imageText)))
+                  .filter(url => url && url !== shirtPlaceholder)
+                  .slice(0, 6);
 
                     return (
                       <div className="color-image-row" key={row.id}>
@@ -350,11 +336,6 @@ function AdminProductsContent() {
                           </div>
                         </div>
                         <div className="d-flex flex-wrap gap-2 align-items-center mt-3">
-                          <label className="btn btn-outline-dark btn-sm file-picker mb-0 d-inline-flex align-items-center gap-2">
-                            <Upload size={14} />
-                            Upload color images
-                            <input accept="image/*" multiple type="file" onChange={event => uploadColorImages(row.id, event)} />
-                          </label>
                           <button className="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-2" type="button" onClick={() => removeColorRow(row.id)}>
                             <Trash2 size={14} />
                             Remove
@@ -370,14 +351,9 @@ function AdminProductsContent() {
               </div>
 
               <div className="d-flex flex-wrap gap-3 align-items-center">
-                <label className="btn btn-outline-dark file-picker mb-0 d-inline-flex align-items-center gap-2">
-                  <Upload size={16} />
-                  Upload images from PC
-                  <input accept="image/*" multiple type="file" onChange={uploadImages} />
-                </label>
                 {form.pictureUrl && form.pictureUrl !== shirtPlaceholder && <img className="admin-preview" src={form.pictureUrl} alt="Selected product preview" />}
                 {form.imageUrls.filter(url => {
-                  const colorImages = colorRows.flatMap(row => row.images);
+                  const colorImages = colorRows.flatMap(row => splitList(row.imageText));
                   return url !== form.pictureUrl && url !== shirtPlaceholder && !colorImages.includes(url);
                 }).slice(0, 6).map(url => (
                   <img className="admin-preview" key={url} src={url} alt="Selected gallery preview" />
