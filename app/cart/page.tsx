@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { Banknote, Minus, Plus, Smartphone, Trash2 } from "lucide-react";
-import { getSavedCart, getShippingFee, placeOrder, removeCartItem, updateCartItem } from "@/lib/api";
+import { ensureCart, getShippingFee, placeOrder, removeCartItem, updateCartItem } from "@/lib/api";
 import { getPublicErrorMessage } from "@/lib/errors";
 import { money } from "@/lib/format";
 import { shirtPlaceholder, useImageFallback } from "@/lib/images";
@@ -32,7 +32,7 @@ export default function CartPage() {
 
   async function load() {
     setLoading(true);
-    const [nextCart, nextShipping] = await Promise.all([getSavedCart(), getShippingFee()]);
+    const [nextCart, nextShipping] = await Promise.all([ensureCart(), getShippingFee()]);
     setCart(nextCart);
     setShipping(nextShipping);
     setLoading(false);
@@ -50,7 +50,13 @@ export default function CartPage() {
   }
 
   const subtotal = cart?.subtotal ?? 0;
-  const shippingFee = shipping?.shippingFee ?? 0;
+
+  // Free shipping for orders over 1000 EGP
+  const shippingFee =
+    subtotal >= 1000
+      ? 0
+      : (shipping?.shippingFee ?? 0);
+
   const total = subtotal + shippingFee;
 
   async function remove(productId: number, color: string, size: string) {
@@ -148,7 +154,9 @@ export default function CartPage() {
                   </div>
                   <div className="d-flex justify-content-between align-items-center">
                     <span className="fw-black">Shipping</span>
-                    <span className="fw-bold">{money.format(shippingFee)}</span>
+                    <span className="fw-bold">
+                      {shippingFee === 0 ? "FREE" : money.format(shippingFee)}
+                      </span>
                   </div>
                   <div className="d-flex justify-content-between align-items-center pt-2">
                     <span className="fw-black">Total</span>
